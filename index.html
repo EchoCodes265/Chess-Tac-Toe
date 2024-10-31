@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess-Tac-Toe</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+
+        .game-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .status {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+
+        .win-message {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+            font-size: 2em;
+            font-weight: bold;
+            border-radius: 10px;
+            animation: fadeIn 0.5s ease-in;
+            z-index: 100;
+        }
+
+        .win-message .trophy {
+            font-size: 3em;
+            margin-bottom: 20px;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .piece-selector {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .piece-btn {
+            width: 40px;
+            height: 40px;
+            font-size: 24px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .piece-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .piece-btn.selected {
+            background: #b3d4fc;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+
+        .cell {
+            width: 80px;
+            height: 80px;
+            border: 2px solid #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            cursor: pointer;
+            background: white;
+        }
+
+        .cell:hover {
+            background: #f0f0f0;
+        }
+
+        .cell.valid-move {
+            background: #90EE90;
+        }
+
+        .cell.valid-capture {
+            background: #FFB6C1;
+        }
+
+        .cell.selected {
+            background: #b3d4fc;
+        }
+
+        .cell.winning-cell {
+            background: #FFD700;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .reset-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .reset-btn:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" id="gameContainer">
+        <div class="status">White's turn</div>
+        <div class="piece-selector" id="pieceSelector"></div>
+        <div class="board" id="board"></div>
+        <button class="reset-btn" onclick="resetGame()">Reset Game</button>
+    </div>
+
+    <script>
+        const gameState = {
+            board: Array(9).fill(null),
+            currentPlayer: 'white',
+            selectedPiece: null,
+            selectedCell: null,
+            winner: null,
+            winningLine: null,
+            pieces: {
+                white: ['♔', '♕', '♖', '♗', '♘', '♙'],
+                black: ['♚', '♛', '♜', '♝', '♞', '♟']
+            }
+        };
+
+        function isValidMove(start, end, forCapture = false) {
+            if (!gameState.selectedPiece) return false;
+            
+            const startRow = Math.floor(start / 3);
+            const startCol = start % 3;
+            const endRow = Math.floor(end / 3);
+            const endCol = end % 3;
+            
+            const rowDiff = Math.abs(endRow - startRow);
+            const colDiff = Math.abs(endCol - startCol);
+
+            if (gameState.selectedPiece === '♙' || gameState.selectedPiece === '♟') {
+                if (forCapture) {
+                    return rowDiff === 1 && colDiff === 1;
+                } else {
+                    return rowDiff === 1 && colDiff === 0;
+                }
+            }
+            
+            switch (gameState.selectedPiece) {
+                case '♔':
+                case '♚':
+                    return rowDiff <= 1 && colDiff <= 1;
+                case '♕':
+                case '♛':
+                    return rowDiff === colDiff || rowDiff === 0 || colDiff === 0;
+                case '♖':
+                case '♜':
+                    return rowDiff === 0 || colDiff === 0;
+                case '♗':
+                case '♝':
+                    return rowDiff === colDiff;
+                case '♘':
+                case '♞':
+                    return (rowDiff === 2 && colDiff === 1) || (rowDiff === 1 && colDiff === 2);
+                default:
+                    return false;
+            }
+        }
+
+        function checkWin(board) {
+            const lines = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+                [0, 4, 8], [2, 4, 6] // Diagonals
+            ];
+
+            for (let line of lines) {
+                const [a, b, c] = line;
+                if (board[a] && board[b] && board[c]) {
+                    const isWhiteA = gameState.pieces.white.includes(board[a]);
+                    const isWhiteB = gameState.pieces.white.includes(board[b]);
+                    const isWhiteC = gameState.pieces.white.includes(board[c]);
+                    
+                    if (isWhiteA && isWhiteB && isWhiteC) {
+                        gameState.winningLine = line;
+                        return 'white';
+                    }
+                    if (!isWhiteA && !isWhiteB && !isWhiteC) {
+                        gameState.winningLine = line;
+                        return 'black';
+                    }
+                }
+            }
+            return null;
+        }
+
+        function isPieceOwnedByCurrentPlayer(piece) {
+            return gameState.currentPlayer === 'white' ? 
+                   gameState.pieces.white.includes(piece) : 
+                   gameState.pieces.black.includes(piece);
+        }
+
+        function handleCellClick(index) {
+            if (gameState.winner) return;
+
+            const clickedPiece = gameState.board[index];
+
+            if (gameState.selectedPiece && !gameState.selectedCell) {
+                if (!clickedPiece) {
+                    gameState.board[index] = gameState.selectedPiece;
+                    endTurn();
+                    return;
+                }
+            }
+
+            if (clickedPiece) {
+                if (isPieceOwnedByCurrentPlayer(clickedPiece)) {
+                    gameState.selectedCell = index;
+                    gameState.selectedPiece = clickedPiece;
+                } else if (gameState.selectedCell !== null && 
+                          isValidMove(gameState.selectedCell, index, true)) {
+                    gameState.board[index] = gameState.board[gameState.selectedCell];
+                    gameState.board[gameState.selectedCell] = null;
+                    endTurn();
+                }
+            } else if (gameState.selectedCell !== null) {
+                if (isValidMove(gameState.selectedCell, index)) {
+                    gameState.board[index] = gameState.board[gameState.selectedCell];
+                    gameState.board[gameState.selectedCell] = null;
+                    endTurn();
+                }
+            }
+            
+            if (!clickedPiece && gameState.selectedCell === null) {
+                gameState.selectedPiece = null;
+                gameState.selectedCell = null;
+            }
+            
+            updateGame();
+        }
+
+        function endTurn() {
+            gameState.selectedPiece = null;
+            gameState.selectedCell = null;
+            gameState.currentPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
+            const winner = checkWin(gameState.board);
+            if (winner) {
+                gameState.winner = winner;
+                showWinMessage(winner);
+            }
+            updateGame();
+        }
+
+        function showWinMessage(winner) {
+            const container = document.getElementById('gameContainer');
+            const winMessage = document.createElement('div');
+            winMessage.className = 'win-message';
+            winMessage.innerHTML = `
+                <div class="trophy">🏆</div>
+                <div>${winner.toUpperCase()} WINS!</div>
+            `;
+            container.appendChild(winMessage);
+        }
+
+        function selectPiece(piece) {
+            if (gameState.winner) return;
+            if (!gameState.board.includes(piece)) {
+                gameState.selectedPiece = piece;
+                gameState.selectedCell = null;
+                updateGame();
+            }
+        }
+
+        function updateGame() {
+            const status = document.querySelector('.status');
+            if (gameState.winner) {
+                status.textContent = `${gameState.winner} wins!`;
+            } else {
+                status.textContent = `${gameState.currentPlayer}'s turn`;
+            }
+
+            const pieceSelector = document.getElementById('pieceSelector');
+            pieceSelector.innerHTML = '';
+            gameState.pieces[gameState.currentPlayer].forEach(piece => {
+                if (!gameState.board.includes(piece)) {
+                    const button = document.createElement('button');
+                    button.className = `piece-btn ${piece === gameState.selectedPiece ? 'selected' : ''}`;
+                    button.textContent = piece;
+                    button.onclick = () => selectPiece(piece);
+                    pieceSelector.appendChild(button);
+                }
+            });
+
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+            gameState.board.forEach((piece, index) => {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                
+                if (gameState.winningLine && gameState.winningLine.includes(index)) {
+                    cell.classList.add('winning-cell');
+                }
+                
+                if (index === gameState.selectedCell) {
+                    cell.classList.add('selected');
+                }
+                
+                if (gameState.selectedCell !== null) {
+                    if (!piece && isValidMove(gameState.selectedCell, index)) {
+                        cell.classList.add('valid-move');
+                    } else if (piece && !isPieceOwnedByCurrentPlayer(piece) && 
+                              isValidMove(gameState.selectedCell, index, true)) {
+                        cell.classList.add('valid-capture');
+                    }
+                }
+                
+                cell.textContent = piece || '';
+                cell.onclick = () => handleCellClick(index);
+                board.appendChild(cell);
+            });
+        }
+
+        function resetGame() {
+            const winMessage = document.querySelector('.win-message');
+            if (winMessage) {
+                winMessage.remove();
+            }
+            gameState.board = Array(9).fill(null);
+            gameState.currentPlayer = 'white';
+            gameState.selectedPiece = null;
+            gameState.selectedCell = null;
+            gameState.winner = null;
+            gameState.winningLine = null;
+            updateGame();
+        }
+
+        updateGame();
+    </script>
+</body>
+</html>
