@@ -268,8 +268,78 @@
                 gameState.pieces.black.includes(piece);
         }
 
+        function isProtected(start, end) {
+            // Get start and end coordinates
+            const startRow = Math.floor(start / 3);
+            const startCol = start % 3;
+            const endRow = Math.floor(end / 3);
+            const endCol = end % 3;
+
+            // Calculate row and column differences
+            const rowStep = startRow < endRow ? 1 : -1;
+            const colStep = startCol < endCol ? 1 : -1;
+
+            let currentRow = startRow + rowStep;
+            let currentCol = startCol + colStep;
+
+            while (currentRow !== endRow || currentCol !== endCol) {
+                const index = currentRow * 3 + currentCol;
+                const piece = gameState.board[index];
+
+                // Check if a piece of the same color is blocking
+                if (piece && isPieceOwnedByCurrentPlayer(piece)) {
+                    return true; // Protected by a friendly piece
+                }
+
+                currentRow += rowStep;
+                currentCol += colStep;
+            }
+
+            return false; // No friendly piece blocking
+        }
+
         function handleCellClick(index) {
-        
+            if (gameState.winner) return;
+
+            const clickedPiece = gameState.board[index];
+
+            if (gameState.selectedPiece && gameState.selectedCell === null) {
+                if (!gameState.board.includes(gameState.selectedPiece)) {
+                    if (!clickedPiece) {
+                        gameState.board[index] = gameState.selectedPiece;
+                        endTurn();
+                        return;
+                    }
+                }
+            }
+
+            if (clickedPiece) {
+                if (isPieceOwnedByCurrentPlayer(clickedPiece)) {
+                    gameState.selectedCell = index;
+                    gameState.selectedPiece = clickedPiece;
+                } else if (gameState.selectedCell !== null &&
+                    isValidMove(gameState.selectedCell, index, true) &&
+                    !isProtected(gameState.selectedCell, index)) { // Added isProtected check
+                    gameState.board[index] = gameState.board[gameState.selectedCell];
+                    gameState.board[gameState.selectedCell] = null;
+                    endTurn();
+                }
+            } else if (gameState.selectedCell !== null) {
+                if (isValidMove(gameState.selectedCell, index)) {
+                    gameState.board[index] = gameState.board[gameState.selectedCell];
+                    gameState.board[gameState.selectedCell] = null;
+                    endTurn();
+                }
+            }
+
+            if (!clickedPiece && gameState.selectedCell === null) {
+                gameState.selectedPiece = null;
+                gameState.selectedCell = null;
+            }
+
+            updateGame();
+        }
+
 
         function endTurn() {
             gameState.selectedPiece = null;
@@ -296,78 +366,14 @@
 
         function selectPiece(piece) {
             if (gameState.winner) return;
-            if (!gameState.board.includes(function isProtected(start, end) {
-    // Get start and end coordinates
-    const startRow = Math.floor(start / 3);
-    const startCol = start % 3;
-    const endRow = Math.floor(end / 3);
-    const endCol = end % 3;
-
-    // Calculate row and column differences
-    const rowStep = startRow < endRow ? 1 : -1;
-    const colStep = startCol < endCol ? 1 : -1;
-
-    let currentRow = startRow + rowStep;
-    let currentCol = startCol + colStep;
-
-    while (currentRow !== endRow || currentCol !== endCol) {
-        const index = currentRow * 3 + currentCol;
-        const piece = gameState.board[index];
-
-        // Check if a piece of the same color is blocking
-        if (piece && isPieceOwnedByCurrentPlayer(piece)) {
-            return true; // Protected by a friendly piece
-        }
-
-        currentRow += rowStep;
-        currentCol += colStep;
-    }
-
-    return false; // No friendly piece blocking
-}
-
-function handleCellClick(index) {
-    if (gameState.winner) return;
-
-    const clickedPiece = gameState.board[index];
-
-    if (gameState.selectedPiece && gameState.selectedCell === null) {
-        if (!gameState.board.includes(gameState.selectedPiece)) {
-            if (!clickedPiece) {
-                gameState.board[index] = gameState.selectedPiece;
-                endTurn();
-                return;
+            if (!gameState.board.includes(piece)) {
+                gameState.selectedPiece = piece;
+                gameState.selectedCell = null;
+                updateGame();
             }
         }
-    }
 
-    if (clickedPiece) {
-        if (isPieceOwnedByCurrentPlayer(clickedPiece)) {
-            gameState.selectedCell = index;
-            gameState.selectedPiece = clickedPiece;
-        } else if (gameState.selectedCell !== null &&
-                   isValidMove(gameState.selectedCell, index, true) &&
-                   !isProtected(gameState.selectedCell, index)) { // Added isProtected check
-            gameState.board[index] = gameState.board[gameState.selectedCell];
-            gameState.board[gameState.selectedCell] = null;
-            endTurn();
-        }
-    } else if (gameState.selectedCell !== null) {
-        if (isValidMove(gameState.selectedCell, index)) {
-            gameState.board[index] = gameState.board[gameState.selectedCell];
-            gameState.board[gameState.selectedCell] = null;
-            endTurn();
-        }
-    }
-
-    if (!clickedPiece && gameState.selectedCell === null) {
-        gameState.selectedPiece = null;
-        gameState.selectedCell = null;
-    }
-
-    updateGame();
-}
-     function updateGame() {
+        function updateGame() {
             const status = document.querySelector('.status');
             if (gameState.winner) {
                 status.textContent = `${gameState.winner.toUpperCase()} wins!`;
