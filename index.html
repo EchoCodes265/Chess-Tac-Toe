@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,14 +13,14 @@
             min-height: 100vh;
             margin: 0;
             font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
+            background-color: #dddada;
         }
 
         .game-container {
             background-color: white;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             position: relative;
         }
 
@@ -34,7 +35,7 @@
             top: 0;
             left: 0;
             right: 0;
-            bottom: 0;
+            bottom: 70px;
             background: rgba(0, 0, 0, 0.8);
             display: flex;
             justify-content: center;
@@ -55,13 +56,25 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-20px); }
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
         }
 
         .piece-selector {
@@ -72,7 +85,7 @@
         }
 
         .piece-btn {
-            width: 40px;
+            width: auto;
             height: 40px;
             font-size: 24px;
             border: 1px solid #ccc;
@@ -102,7 +115,6 @@
             border: 2px solid #333;
             display: flex;
             justify-content: center;
-            align-items: center;
             font-size: 40px;
             cursor: pointer;
             background: white;
@@ -130,9 +142,17 @@
         }
 
         @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
         }
 
         .reset-btn {
@@ -140,7 +160,7 @@
             width: 100%;
             padding: 10px;
             font-size: 16px;
-            background: #4CAF50;
+            background: #0091ff;
             color: white;
             border: none;
             border-radius: 5px;
@@ -148,10 +168,11 @@
         }
 
         .reset-btn:hover {
-            background: #45a049;
+            background: #005392;
         }
     </style>
 </head>
+
 <body>
     <div class="game-container" id="gameContainer">
         <div class="status">White's turn</div>
@@ -176,12 +197,12 @@
 
         function isValidMove(start, end, forCapture = false) {
             if (!gameState.selectedPiece) return false;
-            
+
             const startRow = Math.floor(start / 3);
             const startCol = start % 3;
             const endRow = Math.floor(end / 3);
             const endCol = end % 3;
-            
+
             const rowDiff = Math.abs(endRow - startRow);
             const colDiff = Math.abs(endCol - startCol);
 
@@ -192,7 +213,7 @@
                     return rowDiff === 1 && colDiff === 0;
                 }
             }
-            
+
             switch (gameState.selectedPiece) {
                 case '♔':
                 case '♚':
@@ -227,7 +248,7 @@
                     const isWhiteA = gameState.pieces.white.includes(board[a]);
                     const isWhiteB = gameState.pieces.white.includes(board[b]);
                     const isWhiteC = gameState.pieces.white.includes(board[c]);
-                    
+
                     if (isWhiteA && isWhiteB && isWhiteC) {
                         gameState.winningLine = line;
                         return 'white';
@@ -242,9 +263,9 @@
         }
 
         function isPieceOwnedByCurrentPlayer(piece) {
-            return gameState.currentPlayer === 'white' ? 
-                   gameState.pieces.white.includes(piece) : 
-                   gameState.pieces.black.includes(piece);
+            return gameState.currentPlayer === 'white' ?
+                gameState.pieces.white.includes(piece) :
+                gameState.pieces.black.includes(piece);
         }
 
         function handleCellClick(index) {
@@ -252,20 +273,25 @@
 
             const clickedPiece = gameState.board[index];
 
-            if (gameState.selectedPiece && !gameState.selectedCell) {
-                if (!clickedPiece) {
-                    gameState.board[index] = gameState.selectedPiece;
-                    endTurn();
-                    return;
+            // If a piece is selected but not yet placed on the board
+            if (gameState.selectedPiece && gameState.selectedCell === null) {
+                // Check if the piece is not already on the board
+                if (!gameState.board.includes(gameState.selectedPiece)) {
+                    if (!clickedPiece) {
+                        gameState.board[index] = gameState.selectedPiece;
+                        endTurn();
+                        return;
+                    }
                 }
             }
 
+            // Handling piece movement and capturing
             if (clickedPiece) {
                 if (isPieceOwnedByCurrentPlayer(clickedPiece)) {
                     gameState.selectedCell = index;
                     gameState.selectedPiece = clickedPiece;
-                } else if (gameState.selectedCell !== null && 
-                          isValidMove(gameState.selectedCell, index, true)) {
+                } else if (gameState.selectedCell !== null &&
+                    isValidMove(gameState.selectedCell, index, true)) {
                     gameState.board[index] = gameState.board[gameState.selectedCell];
                     gameState.board[gameState.selectedCell] = null;
                     endTurn();
@@ -277,12 +303,12 @@
                     endTurn();
                 }
             }
-            
+
             if (!clickedPiece && gameState.selectedCell === null) {
                 gameState.selectedPiece = null;
                 gameState.selectedCell = null;
             }
-            
+
             updateGame();
         }
 
@@ -321,9 +347,9 @@
         function updateGame() {
             const status = document.querySelector('.status');
             if (gameState.winner) {
-                status.textContent = `${gameState.winner} wins!`;
+                status.textContent = `${gameState.winner.toUpperCase()} wins!`;
             } else {
-                status.textContent = `${gameState.currentPlayer}'s turn`;
+                status.textContent = `${gameState.currentPlayer.toUpperCase()}'s turn`;
             }
 
             const pieceSelector = document.getElementById('pieceSelector');
@@ -343,24 +369,24 @@
             gameState.board.forEach((piece, index) => {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
-                
+
                 if (gameState.winningLine && gameState.winningLine.includes(index)) {
                     cell.classList.add('winning-cell');
                 }
-                
+
                 if (index === gameState.selectedCell) {
                     cell.classList.add('selected');
                 }
-                
+
                 if (gameState.selectedCell !== null) {
                     if (!piece && isValidMove(gameState.selectedCell, index)) {
                         cell.classList.add('valid-move');
-                    } else if (piece && !isPieceOwnedByCurrentPlayer(piece) && 
-                              isValidMove(gameState.selectedCell, index, true)) {
+                    } else if (piece && !isPieceOwnedByCurrentPlayer(piece) &&
+                        isValidMove(gameState.selectedCell, index, true)) {
                         cell.classList.add('valid-capture');
                     }
                 }
-                
+
                 cell.textContent = piece || '';
                 cell.onclick = () => handleCellClick(index);
                 board.appendChild(cell);
@@ -384,4 +410,5 @@
         updateGame();
     </script>
 </body>
+
 </html>
