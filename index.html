@@ -206,6 +206,17 @@
             const rowDiff = Math.abs(endRow - startRow);
             const colDiff = Math.abs(endCol - startCol);
 
+            // Knights can jump over pieces
+            if (gameState.selectedPiece === '♘' || gameState.selectedPiece === '♞') {
+                return (rowDiff === 2 && colDiff === 1) || (rowDiff === 1 && colDiff === 2);
+            }
+
+            // Check if the path is clear for all other pieces
+            if (!isPathClear(startRow, startCol, endRow, endCol)) {
+                return false;
+            }
+
+            // Pawn movement logic
             if (gameState.selectedPiece === '♙' || gameState.selectedPiece === '♟') {
                 if (forCapture) {
                     return rowDiff === 1 && colDiff === 1;
@@ -214,6 +225,7 @@
                 }
             }
 
+            // Other pieces movement logic
             switch (gameState.selectedPiece) {
                 case '♔':
                 case '♚':
@@ -227,12 +239,29 @@
                 case '♗':
                 case '♝':
                     return rowDiff === colDiff;
-                case '♘':
-                case '♞':
-                    return (rowDiff === 2 && colDiff === 1) || (rowDiff === 1 && colDiff === 2);
                 default:
                     return false;
             }
+        }
+
+        function isPathClear(startRow, startCol, endRow, endCol) {
+            const rowDir = startRow === endRow ? 0 : (endRow - startRow) / Math.abs(endRow - startRow);
+            const colDir = startCol === endCol ? 0 : (endCol - startCol) / Math.abs(endCol - startCol);
+
+            let currentRow = startRow + rowDir;
+            let currentCol = startCol + colDir;
+
+            // Check all squares between start and end (exclusive)
+            while (currentRow !== endRow || currentCol !== endCol) {
+                const index = currentRow * 3 + currentCol;
+                if (gameState.board[index] !== null) {
+                    return false;
+                }
+                currentRow += rowDir;
+                currentCol += colDir;
+            }
+
+            return true;
         }
 
         function checkWin(board) {
@@ -288,25 +317,22 @@
             // Handling piece movement and capturing
             if (clickedPiece) {
                 if (isPieceOwnedByCurrentPlayer(clickedPiece)) {
-                    // Select the piece to potentially move or capture
                     gameState.selectedCell = index;
                     gameState.selectedPiece = clickedPiece;
-                } else if (gameState.selectedCell !== null && isValidMove(gameState.selectedCell, index, true)) {
-                    // Capture the opponent's piece
+                } else if (gameState.selectedCell !== null &&
+                    isValidMove(gameState.selectedCell, index, true)) {
                     gameState.board[index] = gameState.board[gameState.selectedCell];
                     gameState.board[gameState.selectedCell] = null;
                     endTurn();
                 }
             } else if (gameState.selectedCell !== null) {
                 if (isValidMove(gameState.selectedCell, index)) {
-                    // Move to an empty cell
                     gameState.board[index] = gameState.board[gameState.selectedCell];
                     gameState.board[gameState.selectedCell] = null;
                     endTurn();
                 }
             }
 
-            // Clear selection if no valid actions were taken
             if (!clickedPiece && gameState.selectedCell === null) {
                 gameState.selectedPiece = null;
                 gameState.selectedCell = null;
@@ -314,8 +340,6 @@
 
             updateGame();
         }
-
-
 
         function endTurn() {
             gameState.selectedPiece = null;
